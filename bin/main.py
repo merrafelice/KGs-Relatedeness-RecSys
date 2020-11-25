@@ -6,9 +6,9 @@ import time
 import sys
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
-from io_util import save_obj
-from relatedness import evaluate_katz_relatedness
-from timer import timer
+from utils.io_util import save_obj
+from utils.relatedness import evaluate_katz_relatedness
+from utils.timer import timer
 
 similarities_file = '{0}_{1}_{2}_similarities.txt'
 
@@ -17,7 +17,7 @@ yahoo_movies_2_hops = 'yahoo_movies_2_hops'
 small_library_thing = 'SmallLibraryThing'
 small_library_thing_2_hops = 'SmallLibraryThing2Hops'
 
-project_dir = os.path.abspath(os.path.join(os.getcwd()))
+project_dir = os.path.abspath(os.path.join(os.getcwd(), '..'))
 selection_types = ['categorical', 'ontological', 'factual']
 datasets = [small_library_thing, small_library_thing_2_hops, yahoo_movies, yahoo_movies_2_hops]
 dataset = datasets[0]
