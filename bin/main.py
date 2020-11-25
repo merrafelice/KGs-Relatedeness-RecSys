@@ -3,6 +3,9 @@ import pandas as pd
 import os
 from ast import literal_eval
 import time
+import sys
+
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
 from bin.utils.io import save_obj
 from bin.utils.relatedness import evaluate_katz_relatedness
