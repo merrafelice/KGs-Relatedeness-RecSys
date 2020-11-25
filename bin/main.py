@@ -4,6 +4,7 @@ import os
 from ast import literal_eval
 import time
 import sys
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
 from io_util import save_obj
 from relatedness import evaluate_katz_relatedness
