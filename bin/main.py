@@ -5,11 +5,9 @@ from ast import literal_eval
 import time
 import sys
 
-sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
-
-from bin.utils.io import save_obj
-from bin.utils.relatedness import evaluate_katz_relatedness
-from bin.utils.timer import timer
+from io_util import save_obj
+from relatedness import evaluate_katz_relatedness
+from timer import timer
 
 similarities_file = '{0}_{1}_{2}_similarities.txt'
 
