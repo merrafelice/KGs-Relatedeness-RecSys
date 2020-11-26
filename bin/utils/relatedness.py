@@ -18,17 +18,16 @@ def evaluate_katz_relatedness(hashmap_shortest_paths, alpha, top_k_similar_items
     similar_items = pd.DataFrame()
 
     for target_item in hashmap_shortest_paths.keys():
-        rel_target_end_at1, rel_target_end_at5, rel_target_end_at10 = [], [], []
+        rel_target_end_at1, rel_target_end_atk = [], []
         for end_item in hashmap_shortest_paths[target_item].keys():
             top_k_paths = hashmap_shortest_paths[target_item][end_item]
             # +1 since we have remove the head and tail of the path and the length is the number of edges
-            rel_target_end_at1.append(np.mean([np.power(alpha, len(p) + 1) for p in top_k_paths[:1]]))
-            rel_target_end_at5.append(np.mean([np.power(alpha, len(p) + 1) for p in top_k_paths[:5]]))
-            rel_target_end_at10.append(np.mean([np.power(alpha, len(p) + 1) for p in top_k_paths[:10]]))
+            # rel_target_end_at1.append(np.mean([np.power(alpha, len(p) + 1) for p in top_k_paths[:1]]))
+            rel_target_end_atk.append(np.mean([np.power(alpha, len(p) + 1) for p in top_k_paths]))
 
         # For now we are storing the list based on katz_rel_at_10
         end_items = list(hashmap_shortest_paths[target_item].keys())
-        top_similar_index_ids = np.argsort(rel_target_end_at10)[::-1][
+        top_similar_index_ids = np.argsort(rel_target_end_atk)[::-1][
                                 :int(len(end_items) * top_k_similar_items)]  # Sort from bigger to smaller
         similar_items = similar_items.append({
             'itemId': int(target_item),

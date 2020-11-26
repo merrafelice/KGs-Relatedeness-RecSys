@@ -110,15 +110,16 @@ def build():
 
         save_obj(hashmap_shortest_paths,
                  os.path.join(project_dir, 'data', dataset, 'similarities',
-                              'dict_{0}_exploration'.format(selection_type)))
+                              'top{0}_dict_{1}_exploration'.format(topk, selection_type)))
         save_obj(indexer_subjects,
                  os.path.join(project_dir, 'data', dataset, 'similarities',
-                              'subject_uri_indexer_{0}_exploration'.format(selection_type)))
+                              'top{0}_subject_uri_indexer_{1}_exploration'.format(topk, selection_type)))
 
         # Measure Metrics
+        # Katz
         similar_items = evaluate_katz_relatedness(hashmap_shortest_paths, alpha, top_k_similar_items)
         similar_items.to_csv(os.path.join(project_dir, 'data', dataset, 'similarities',
-                                          similarities_file.format('katz{0}'.format(alpha), 'target', selection_type)), index=None)
+                                          similarities_file.format('katz-a{0}-top{1}'.format(alpha, topk), 'target', selection_type)), index=None)
 
         print("\n\n{0} Katz relatedness file WRITTEN on {1}".format(selection_type, dataset))
 
