@@ -4,10 +4,11 @@ import os
 from ast import literal_eval
 import time
 import sys
+
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
 from utils.io_util import save_obj
-from utils.relatedness import evaluate_katz_relatedness
+from utils.relatedness import evaluate_katz_relatedness, evaluate_exclusivity_relatedness
 from utils.timer import timer
 
 similarities_file = '{0}_{1}_{2}_similarities.txt'
@@ -21,11 +22,18 @@ project_dir = os.path.abspath(os.path.join(os.getcwd(), '..'))
 selection_types = ['categorical', 'ontological', 'factual']
 datasets = [small_library_thing, small_library_thing_2_hops, yahoo_movies, yahoo_movies_2_hops]
 dataset = datasets[0]
-topk = 10
+topk = 10  # The threshold on which we build the relatedness measures
+topn = 100  # The number of extracted top shortest paths (Not useful in Katz)
 top_k_similar_items = 0.25
 
-# Katz Parameters
+# Parameters
 alpha = 0.25
+
+# Which measures?
+is_katz = 1
+is_exclusivity = 1
+
+
 # 0.25 is the best value in:
 # Path-based Semantic Relatedness on Linked Data and its use to Word and Entity Disambiguation
 # authored by Ioana Hulpu¸s, Narumol Prangnawarat, Conor Hayes
@@ -74,11 +82,25 @@ def build():
             # Else it means that we have already a subject with the same URI but coming from a different property
 
         # Add edges
+        dict_node_relation_to_subject = {}
+        dict_subject_relation_from_node = {}
+        dict_node_to_subject = {}
         for i, row in df_item_features.iterrows():
             item_id, feature_id = int(row['item']), int(row['feature'])
-            uri = df_feature_uris[df_feature_uris[0] == feature_id][1].values[0]
-            uri = uri.split('><')[1][:-1]
-            G.add_edge(item_id, indexer_subjects[uri])
+            rel_sub = df_feature_uris[df_feature_uris[0] == feature_id][1].values[0]
+            rel = rel_sub.split('><')[0][1:]
+            uri = rel_sub.split('><')[1][:-1]
+            subject_id = indexer_subjects[uri]
+            G.add_edge(item_id, subject_id)
+            if (item_id, rel) not in dict_node_relation_to_subject:
+                dict_node_relation_to_subject[(item_id, rel)] = [subject_id]
+            else:
+                dict_node_relation_to_subject[(item_id, rel)].append(subject_id)
+            dict_node_to_subject[(item_id, subject_id)] = rel
+
+            if (rel, subject_id) not in dict_subject_relation_from_node:
+                dict_subject_relation_from_node[(rel, subject_id)] = [item_id]
+            dict_subject_relation_from_node[(rel, subject_id)].append(item_id)
 
         print('Start Path Exploration of {}'.format(selection_type))
         start_path_exploration = time.time()
@@ -95,8 +117,7 @@ def build():
                 all_simple_paths = nx.shortest_simple_paths(G, target_item_id, item)
                 # for num, path in enumerate(reversed_iterator(all_simple_paths)):
                 for num, path in enumerate(all_simple_paths):
-                    # print("\t\t{}".format(len(path[1:-1])))
-                    hashmap_shortest_paths[target_item_id][item].append(path[1:-1])
+                    hashmap_shortest_paths[target_item_id][item].append(path)
                     if num == topk:
                         break
 
@@ -116,16 +137,28 @@ def build():
                               'top{0}_subject_uri_indexer_{1}_exploration'.format(topk, selection_type)))
 
         # Measure Metrics
-        # Katz
-        similar_items = evaluate_katz_relatedness(hashmap_shortest_paths, alpha, top_k_similar_items)
-        similar_items.to_csv(os.path.join(project_dir, 'data', dataset, 'similarities',
-                                          similarities_file.format('katz-a{0}-top{1}'.format(alpha, topk), 'target', selection_type)), index=None)
 
-        print("\n\n{0} Katz relatedness file WRITTEN on {1}".format(selection_type, dataset))
+        ## Katz Relatedness
+        if is_katz:
+            start_katz = time.time()
+            similar_items = evaluate_katz_relatedness(hashmap_shortest_paths, alpha, topk, top_k_similar_items)
+            similar_items.to_csv(os.path.join(project_dir, 'data', dataset, 'similarities',
+                                              similarities_file.format('katz-a{0}-top{1}'.format(alpha, topk), 'target',
+                                                                       selection_type)), index=None)
+            print("\n\n{0} Katz relatedness file WRITTEN on {1} in {2}".format(selection_type, dataset, timer(start_katz, time.time())))
+
+        ## Exclusivity-based Relatedness
+        if is_exclusivity:
+            start_exclusivity = time.time()
+            similar_items = evaluate_exclusivity_relatedness(hashmap_shortest_paths, dict_node_to_subject, dict_subject_relation_from_node, dict_node_relation_to_subject, alpha, topk,
+                                                             top_k_similar_items)
+            similar_items.to_csv(os.path.join(project_dir, 'data', dataset, 'similarities',
+                                              similarities_file.format('exclusivity-a{0}-top{1}'.format(alpha, topk), 'target',
+                                                                       selection_type)), index=None)
+            print("\n\n{0} Exclusivity relatedness file WRITTEN on {1} in {2}".format(selection_type, dataset, timer(start_exclusivity, time.time())))
 
         print("**** END in {} ****".format(timer(start_type, time.time())))
 
 
-# Press the green button in the gutter to run the script.
 if __name__ == '__main__':
     build()
