@@ -21,7 +21,7 @@ small_library_thing_2_hops = 'SmallLibraryThing2Hops'
 project_dir = os.path.abspath(os.path.join(os.getcwd(), '..'))
 selection_types = ['categorical', 'ontological', 'factual']
 datasets = [small_library_thing, small_library_thing_2_hops, yahoo_movies, yahoo_movies_2_hops]
-dataset = datasets[0]
+dataset = datasets[1]
 topk = 10  # The threshold on which we build the relatedness measures
 topn = 100  # The number of extracted top shortest paths (Not useful in Katz)
 top_k_similar_items = 0.25
@@ -40,6 +40,8 @@ is_exclusivity = 1
 
 
 def build():
+    print(dataset)
+    print('\n')
     df_map = pd.read_csv(os.path.join(project_dir, 'data', dataset, 'df_map.csv'))
     df_selected_features = pd.read_csv(os.path.join(project_dir, 'data', dataset, 'selected_features.csv'))
     df_features = pd.read_csv(os.path.join(project_dir, 'data', dataset, "features.tsv"), sep='\t', header=None)
@@ -70,15 +72,16 @@ def build():
         indexer_subjects = {}  # Indexer to Simply the MAP Creation
         subject_id = 0
         for i, row in df_feature_uris.iterrows():
-            uri = row[1]
-            uri = uri.split('><')[1][:-1]
-            if uri not in indexer_subjects:
-                while subject_id in items:
+            uris = row[1].split('><')
+            for i in range(int(len(uris)/2)):
+                uri = uris[1+2*i][:-1] if (i+1) == len(uris)/2 else uris[1+2*i]
+                if uri not in indexer_subjects:
+                    while subject_id in items:
+                        subject_id += 1
+                    indexer_subjects[uri] = subject_id
+                    # print(subject_node)
+                    G.add_node(subject_id)
                     subject_id += 1
-                indexer_subjects[uri] = subject_id
-                # print(subject_node)
-                G.add_node(subject_id)
-                subject_id += 1
             # Else it means that we have already a subject with the same URI but coming from a different property
 
         # Add edges
@@ -87,20 +90,23 @@ def build():
         dict_node_to_subject = {}
         for i, row in df_item_features.iterrows():
             item_id, feature_id = int(row['item']), int(row['feature'])
-            rel_sub = df_feature_uris[df_feature_uris[0] == feature_id][1].values[0]
-            rel = rel_sub.split('><')[0][1:]
-            uri = rel_sub.split('><')[1][:-1]
-            subject_id = indexer_subjects[uri]
-            G.add_edge(item_id, subject_id)
-            if (item_id, rel) not in dict_node_relation_to_subject:
-                dict_node_relation_to_subject[(item_id, rel)] = [subject_id]
-            else:
-                dict_node_relation_to_subject[(item_id, rel)].append(subject_id)
-            dict_node_to_subject[(item_id, subject_id)] = rel
+            uris = df_feature_uris[df_feature_uris[0] == feature_id][1].values[0].split('><')
+            for i in range(int(len(uris) / 2)):
+                rel = uris[2*i] if (i+1) == len(uris)/2 else uris[2*i][1:]
+                uri = uris[1+2*i][:-1] if (i+1) == len(uris)/2 else uris[1+2*i]
+                subject_id = indexer_subjects[uri]
+                G.add_edge(item_id, subject_id)
+                if (item_id, rel) not in dict_node_relation_to_subject:
+                    dict_node_relation_to_subject[(item_id, rel)] = [subject_id]
+                else:
+                    dict_node_relation_to_subject[(item_id, rel)].append(subject_id)
+                dict_node_to_subject[(item_id, subject_id)] = rel
 
-            if (rel, subject_id) not in dict_subject_relation_from_node:
-                dict_subject_relation_from_node[(rel, subject_id)] = [item_id]
-            dict_subject_relation_from_node[(rel, subject_id)].append(item_id)
+                if (rel, subject_id) not in dict_subject_relation_from_node:
+                    dict_subject_relation_from_node[(rel, subject_id)] = [item_id]
+                dict_subject_relation_from_node[(rel, subject_id)].append(item_id)
+
+                item_id = subject_id
 
         print('Start Path Exploration of {}'.format(selection_type))
         start_path_exploration = time.time()
