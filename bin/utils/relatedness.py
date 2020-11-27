@@ -31,7 +31,9 @@ def evaluate_katz_relatedness(hashmap_shortest_paths, alpha, topk, top_k_similar
         similar_items = similar_items.append({
             'itemId': int(target_item),
             'similar_items': [end_items[top_similar_index_id] for top_similar_index_id in
-                              top_similar_index_ids]
+                              top_similar_index_ids],
+            'scores': [rel_target_end_atk[top_similar_index_id] for top_similar_index_id in
+                              top_similar_index_ids],
         }, ignore_index=True)
 
     return similar_items
@@ -89,7 +91,9 @@ def evaluate_exclusivity_relatedness(hashmap_shortest_paths, dict_node_to_subjec
         similar_items = similar_items.append({
             'itemId': int(target_item),
             'similar_items': [end_items[top_similar_index_id] for top_similar_index_id in
-                              top_similar_index_ids]
+                              top_similar_index_ids],
+            'scores': [rel_target_end_atk[top_similar_index_id] for top_similar_index_id in
+                              top_similar_index_ids],
         }, ignore_index=True)
 
     return similar_items
